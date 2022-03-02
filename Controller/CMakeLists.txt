@@ -13,8 +13,7 @@ set(CMAKE_CXX_COMPILER_WORKS 1)
 project("Controller" C CXX)
 
 include(CMakeListsPrivate.txt)
-
-include_directories(.pio/libdeps/d1_mini/U8glib/src)
+include_directories(.pio/libdeps/d1_mini/U8g2/src)
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/CMakeListsUser.txt)
 include(CMakeListsUser.txt)

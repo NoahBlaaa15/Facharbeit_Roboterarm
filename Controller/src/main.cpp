@@ -1,186 +1,96 @@
 #include <Arduino.h>
-#include <U8glib.h>
+#include <U8g2lib.h>
+#include <Wire.h>
 
-U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_NONE|U8G_I2C_OPT_DEV_0);
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 
-#define SECONDS 20
-uint8_t flip_color = 0;
-uint8_t draw_color = 1;
+bool toggle = 1;
+bool toggleLast = 0;
 
-void draw_set_screen(void) {
-    // graphic commands to redraw the complete screen should be placed here
-    if ( u8g.getMode() == U8G_MODE_HICOLOR ) {
-        if ( flip_color == 0 )
-            u8g.setHiColorByRGB(0,0,0);
-        else
-            u8g.setHiColorByRGB(255,255,255);
-    }
-    else {
-        u8g.setColorIndex(flip_color);
-    }
-    u8g.drawBox( 0, 0, u8g.getWidth(), u8g.getHeight() );
+int X = 0;
+int Y = 0;
+
+int posX = 500; //Min: 0; Max: 1000
+int posY = 500;
+
+int changeJoyX();
+int changeJoyY();
+int sanitizeInput(int sanInt, int oldInt);
+void convertJoyToPos();
+
+void setup(void){
+    Serial.begin(9600);
+    u8g2.begin();
+    pinMode(13, INPUT);
+    X = map(changeJoyX(), 13, 236, 0, 50);
+    Y =  map(changeJoyY(), 13, 236, 0, 50);
 }
 
-void draw_clip_test(void) {
-    u8g_uint_t i, j, k;
-    char buf[3] = "AB";
-    k = 0;
-    if ( u8g.getMode() == U8G_MODE_HICOLOR ) {
-        u8g.setHiColorByRGB(255,255,255);
-    }
-    else {
-        u8g.setColorIndex(draw_color);
-    }
-    u8g.setFont(u8g_font_6x10);
+void loop(void){
+    X = sanitizeInput(changeJoyX(), X);
+    delay(10);
+    Y = sanitizeInput(changeJoyY(), Y);
+    delay(5);
+    convertJoyToPos();
 
-    for( i = 0; i  < 6; i++ ) {
-        for( j = 1; j  < 8; j++ ) {
-            u8g.drawHLine(i-3, k, j);
-            u8g.drawHLine(i-3+10, k, j);
-
-            u8g.drawVLine(k+20, i-3, j);
-            u8g.drawVLine(k+20, i-3+10, j);
-
-            k++;
+    u8g2.setFont(u8g2_font_finderskeepers_tf);	// choose a suitable font
+    u8g2.clearBuffer();
+    u8g2.drawBox(0,0, 128, 9);
+    u8g2.setDrawColor(0);
+    u8g2.drawStr(40,8, (toggle ? "Select X/Y" : "Select Z" ));
+    u8g2.drawStr(0, 8, String(X).c_str());
+    u8g2.drawStr(110, 8, String(Y).c_str());
+    u8g2.setDrawColor(1);
+    u8g2.drawFrame(37,10,54,54);
+    u8g2.drawStr(map(posX, 0, 1000, 36, 86),map(posY, 0, 1000, 65, 14), "+");
+    u8g2.drawStr(0,26, String(posX).c_str());
+    u8g2.drawStr(108,26, String(posY).c_str());
+    u8g2.drawStr(0,52, "Con");
+    u8g2.drawStr(4,60, "v");
+    u8g2.drawStr(112,52, "Res");
+    u8g2.drawStr(118,60, "v");
+    u8g2.sendBuffer();
+    if(digitalRead(13) == 0){
+        if(toggleLast == 0){
+            toggle = !toggle;
         }
+        toggleLast = 1;
+    }else{
+        toggleLast = 0;
     }
-    u8g.drawStr(0-3, 50, buf);
-    u8g.drawStr180(0+3, 50, buf);
 
-    u8g.drawStr(u8g.getWidth()-3, 40, buf);
-    u8g.drawStr180(u8g.getWidth()+3, 40, buf);
-
-    u8g.drawStr90(u8g.getWidth()-10, 0-3, buf);
-    u8g.drawStr270(u8g.getWidth()-10, 3, buf);
-
-    u8g.drawStr90(u8g.getWidth()-20, u8g.getHeight()-3, buf);
-    u8g.drawStr270(u8g.getWidth()-20, u8g.getHeight()+3, buf);
-
+    delay(10);
 }
 
-void draw_char(void) {
-    char buf[2] = "@";
-    u8g_uint_t i, j;
-    // graphic commands to redraw the complete screen should be placed here
-    if ( u8g.getMode() == U8G_MODE_HICOLOR ) {
-        u8g.setHiColorByRGB(255,255,255);
-    }
-    else {
-        u8g.setColorIndex(draw_color);
-    }
-    u8g.setFont(u8g_font_6x10);
-    j = 8;
-    for(;;) {
-        i = 0;
-        for(;;) {
-            u8g.drawStr( i, j, buf);
-            i += 8;
-            if ( i > u8g.getWidth() )
-                break;
-        }
-        j += 8;
-        if ( j > u8g.getHeight() )
-            break;
-    }
-
+void convertJoyToPos(){
+    posX = (posX+(X-21)) > 1000 ? 1000 : (posX+(X-21)) < 0 ? 0 : posX+(X-21); //Von 0 zu 50 zu -2.5 bis +2.5
+    posY = (posY+(Y-21)) > 1000 ? 1000 : (posY+(Y-21)) < 0 ? 0 : posY+(Y-21);
 }
 
-void draw_pixel(void) {
-    u8g_uint_t x, y, w2, h2;
-    if ( u8g.getMode() == U8G_MODE_HICOLOR ) {
-        u8g.setHiColorByRGB(255,255,255);
+int sanitizeInput(int sanInt, int oldInt){
+    int newInt = map(sanInt, 13, 235, 0, 50);
+    if(newInt > 50){
+        newInt = 50;
     }
-    else {
-        u8g.setColorIndex(draw_color);
+    if(newInt < 0){
+        newInt = 0;
     }
-    w2 = u8g.getWidth();
-    h2 = u8g.getHeight();
-    w2 /= 2;
-    h2 /= 2;
-    for( y = 0; y < h2; y++ ) {
-        for( x = 0; x < w2; x++ ) {
-            if ( (x + y) & 1 ) {
-                u8g.drawPixel(x,y);
-                u8g.drawPixel(x,y+h2);
-                u8g.drawPixel(x+w2,y);
-                u8g.drawPixel(x+w2,y+h2);
-            }
-        }
-    }
+
+    if(newInt < oldInt-1 || newInt > oldInt+1){ oldInt = newInt;}
+
+    return oldInt;
 }
 
-// returns unadjusted FPS
-uint16_t picture_loop_with_fps(void (*draw_fn)(void)) {
-    uint16_t FPS10 = 0;
-    uint32_t time;
-
-    time = millis() + SECONDS*1000;
-
-    // picture loop
-    do {
-        u8g.firstPage();
-        do {
-            draw_fn();
-        } while( u8g.nextPage() );
-        FPS10++;
-        flip_color = flip_color ^ 1;
-    } while( millis() < time );
-    return FPS10;
+int changeJoyX(){
+    pinMode(14,INPUT);
+    pinMode(12,OUTPUT);
+    digitalWrite(12,LOW);
+    return analogRead(A0);
 }
 
-const char *convert_FPS(uint16_t fps) {
-    static char buf[6];
-    strcpy(buf, u8g_u8toa( (uint8_t)(fps/10), 3));
-    buf[3] =  '.';
-    buf[4] = (fps % 10) + '0';
-    buf[5] = '\0';
-    return buf;
-}
-
-void show_result(const char *s, uint16_t fps) {
-    // assign default color value
-    if ( u8g.getMode() == U8G_MODE_HICOLOR ) {
-        u8g.setHiColorByRGB(255,255,255);
-    }
-    else {
-        u8g.setColorIndex(draw_color);
-    }
-    u8g.setFont(u8g_font_8x13B);
-    u8g.firstPage();
-    do {
-        u8g.drawStr(0,12, s);
-        u8g.drawStr(0,24, convert_FPS(fps));
-    } while( u8g.nextPage() );
-}
-
-void setup(void) {
-    // flip screen, if required
-    // u8g.setRot180();
-
-    // assign default color value
-    if ( u8g.getMode() == U8G_MODE_R3G3B2 )
-        draw_color = 255;     // white
-    else if ( u8g.getMode() == U8G_MODE_GRAY2BIT )
-        draw_color = 3;         // max intensity
-    else if ( u8g.getMode() == U8G_MODE_BW )
-        draw_color = 1;         // pixel on
-    else if ( u8g.getMode() == U8G_MODE_HICOLOR ) {
-        u8g.setHiColorByRGB(255,255,255);
-    }
-}
-
-void loop(void) {
-    uint16_t fps;
-    fps = picture_loop_with_fps(draw_clip_test);
-    show_result("draw clip test", fps);
-    delay(5000);
-    fps = picture_loop_with_fps(draw_set_screen);
-    show_result("clear screen", fps);
-    delay(5000);
-    fps = picture_loop_with_fps(draw_char);
-    show_result("draw @", fps);
-    delay(5000);
-    fps = picture_loop_with_fps(draw_pixel);
-    show_result("draw pixel", fps);
-    delay(5000);
+int changeJoyY(){
+    pinMode(12,INPUT);
+    pinMode(14,OUTPUT);
+    digitalWrite(14,LOW);
+    return analogRead(A0);
 }
