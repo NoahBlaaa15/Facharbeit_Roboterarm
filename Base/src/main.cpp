@@ -45,6 +45,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
             //Serial.printf("[%u] get Text: %s\n", num, coords.c_str());
             if(coords.equalsIgnoreCase("Reset")){
                 //Go to normal position so after restart we know where the motors are
+                //current - standard = steps to make to reach start position
             }else {
                 char *charString = strdup(coords.c_str());
                 char *processedString = strtok(charString, ",");
