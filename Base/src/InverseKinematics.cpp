@@ -16,7 +16,7 @@ double InverseKinematics::getBetaAngle(double xyd, double z , double lengthTop, 
     double firstStage = pow(xyd,2) + pow(z,2) - pow(lengthBottom, 2) - pow(lengthTop, 2);
     double secondStage = firstStage / (2 * lengthBottom * lengthTop);
     double thirdStage = acos(secondStage) * 180 / M_PI;
-    return 360 - thirdStage;
+    return 180 - thirdStage;
 }
 
 double InverseKinematics::getAlphaAngle(double xyd, double z, double lengthTop, double lengthBottom, double beta){
