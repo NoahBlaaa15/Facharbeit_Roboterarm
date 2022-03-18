@@ -11,16 +11,17 @@
  * Alpha = Angle of Bottom Motor
  * Delta = Angle of Base Motor
  */
+#define BottomOffset 180
 
 double InverseKinematics::getBetaAngle(double xyd, double z , double lengthTop, double lengthBottom){
     double firstStage = pow(xyd,2) + pow(z,2) - pow(lengthBottom, 2) - pow(lengthTop, 2);
     double secondStage = firstStage / (2 * lengthBottom * lengthTop);
     double thirdStage = acos(secondStage) * 180 / M_PI;
-    return 180 - thirdStage;
+    return BottomOffset - thirdStage;
 }
 
 double InverseKinematics::getAlphaAngle(double xyd, double z, double lengthTop, double lengthBottom, double beta){
-    beta = (360-beta)*M_PI/180;
+    beta = (BottomOffset-beta)*M_PI/180;
     double firstStage = (lengthTop * sin(beta)) / (lengthBottom + lengthTop * cos(beta));
     double secondStage = (atan(xyd/z) - atan(firstStage)) * 180 / M_PI;
     return 90 - secondStage;

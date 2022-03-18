@@ -21,9 +21,9 @@ double currentPositionT = standardT; //T = Top
 
 WebSocketsServer webSocket = WebSocketsServer(81);
 
-AccelStepper stepperBase(AccelStepper::HALF4WIRE, 33, 32, 35, 34);
-AccelStepper stepperBottom(AccelStepper::HALF4WIRE, 14, 27, 26, 25);
-AccelStepper stepperTop(AccelStepper::HALF4WIRE, 17, 5, 18, 19);
+AccelStepper stepperBase(AccelStepper::FULL4WIRE, 33, 32, 35, 34);
+AccelStepper stepperBottom(AccelStepper::FULL4WIRE, 14, 27, 26, 25);
+AccelStepper stepperTop(AccelStepper::FULL4WIRE, 17, 5, 18, 19);
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
 
@@ -57,9 +57,12 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                 Serial.println("Upper Angle: " + String( angleOne));
                 double angleTwo = InverseKinematics::getAlphaAngle(dist, posZ, InverseKinematics::lT, InverseKinematics::lB, angleOne);
                 Serial.println("Down Angle: " + String( angleTwo ));
-                stepperBase.moveTo(map(newPosX - currentPositionG, -360, 360, -4096, 4096));
-                stepperBottom.moveTo(map(angleTwo - currentPositionB, -360, 360, 4096, -4096));
-                stepperTop.moveTo(map(angleOne - currentPositionT, -360, 360, -4096, 4096));
+                Serial.println(String(newPosX - currentPositionG));
+                Serial.println(String(angleOne - currentPositionT));
+                Serial.println(String(angleTwo - currentPositionB));
+                stepperBase.moveTo(map(newPosX - currentPositionG, -360, 360, -1024, 1024));
+                stepperBottom.moveTo(map(angleTwo - currentPositionB, -360, 360, -1024, 1024));
+                stepperTop.moveTo(map(angleOne - currentPositionT, -360, 360, -1024, 1024));
                 currentPositionG = newPosX;
                 currentPositionB = angleTwo;
                 currentPositionT = angleOne;
@@ -81,12 +84,12 @@ void setup(){
     webSocket.onEvent(webSocketEvent);
     webSocket.begin();
 
-    stepperBase.setMaxSpeed(200);
-    stepperBase.setAcceleration(500);
-    stepperBottom.setMaxSpeed(200);
-    stepperBottom.setAcceleration(500);
-    stepperTop.setMaxSpeed(200);
-    stepperTop.setAcceleration(500);
+    stepperBase.setMaxSpeed(16);
+    stepperBase.setAcceleration(128);
+    stepperBottom.setMaxSpeed(16);
+    stepperBottom.setAcceleration(128);
+    stepperTop.setMaxSpeed(16);
+    stepperTop.setAcceleration(128);
 }
 
 
