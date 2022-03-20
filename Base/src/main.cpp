@@ -21,9 +21,11 @@ double currentPositionT = standardT; //T = Top
 
 WebSocketsServer webSocket = WebSocketsServer(81);
 
-AccelStepper stepperBase(AccelStepper::FULL4WIRE, 33, 32, 35, 34);
-AccelStepper stepperBottom(AccelStepper::FULL4WIRE, 14, 27, 26, 25);
-AccelStepper stepperTop(AccelStepper::FULL4WIRE, 17, 5, 18, 19);
+//Stepper motoren sind intern komisch verbunden; in1 und in4 müssen hardware oder software mäßig verändert werden so das in1 -> in4 und in4 -> in1
+//Wir haben dies über Software gemacht
+AccelStepper stepperBase(AccelStepper::FULL4WIRE, 13, 32, 12, 33);
+AccelStepper stepperBottom(AccelStepper::FULL4WIRE, 25, 27, 26, 14);
+AccelStepper stepperTop(AccelStepper::FULL4WIRE, 19, 5, 18, 17);
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
 
@@ -57,12 +59,9 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                 Serial.println("Upper Angle: " + String( angleOne));
                 double angleTwo = InverseKinematics::getAlphaAngle(dist, posZ, InverseKinematics::lT, InverseKinematics::lB, angleOne);
                 Serial.println("Down Angle: " + String( angleTwo ));
-                Serial.println(String(newPosX - currentPositionG));
-                Serial.println(String(angleOne - currentPositionT));
-                Serial.println(String(angleTwo - currentPositionB));
-                stepperBase.moveTo(map(newPosX - currentPositionG, -360, 360, -1024, 1024));
-                stepperBottom.moveTo(map(angleTwo - currentPositionB, -360, 360, -1024, 1024));
-                stepperTop.moveTo(map(angleOne - currentPositionT, -360, 360, -1024, 1024));
+                stepperBase.moveTo(map(newPosX, -360, 360, -1024, 1024));
+                stepperBottom.moveTo(map(angleTwo, -360, 360, -640, 640));
+                stepperTop.moveTo(map(angleOne, -360, 360, -640, 640));
                 currentPositionG = newPosX;
                 currentPositionB = angleTwo;
                 currentPositionT = angleOne;
@@ -84,11 +83,11 @@ void setup(){
     webSocket.onEvent(webSocketEvent);
     webSocket.begin();
 
-    stepperBase.setMaxSpeed(16);
+    stepperBase.setMaxSpeed(12);
     stepperBase.setAcceleration(128);
-    stepperBottom.setMaxSpeed(16);
+    stepperBottom.setMaxSpeed(12);
     stepperBottom.setAcceleration(128);
-    stepperTop.setMaxSpeed(16);
+    stepperTop.setMaxSpeed(12);
     stepperTop.setAcceleration(128);
 }
 
@@ -98,6 +97,6 @@ void loop(){
     stepperBase.run();
     stepperBottom.run();
     stepperTop.run();
-    delay(10);
+    yield();
 }
 
